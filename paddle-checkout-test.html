@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Paddle Checkout Test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 560px; margin: 40px auto; padding: 0 16px; }
+    label { display: block; margin: 14px 0 4px; font-weight: 600; }
+    input, select { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { margin-top: 20px; padding: 10px 24px; font-size: 16px; cursor: pointer; }
+    .hint { color: #666; font-size: 13px; margin-top: 4px; }
+    #status { margin-top: 16px; padding: 10px; background: #f4f4f4; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>Paddle Checkout — Test Page</h2>
+  <p class="hint">
+    Backend testing page: opens a real Paddle (sandbox) checkout with the
+    <code>custom_data.user_id</code> our webhook needs. Open this file directly in a browser.
+  </p>
+
+  <label>Environment</label>
+  <select id="env">
+    <option value="sandbox" selected>sandbox</option>
+    <option value="production">production</option>
+  </select>
+
+  <label>Client-side token (Paddle &gt; Developer Tools &gt; Authentication)</label>
+  <input id="token" placeholder="test_xxxxxxxxxxxxxxxxx" />
+  <div class="hint">Sandbox tokens start with <code>test_</code>, live with <code>live_</code>.</div>
+
+  <label>Price id (Paddle &gt; Catalog &gt; Products)</label>
+  <input id="price" placeholder="pri_xxxxxxxxxxxxxxxxx" />
+  <div class="hint">Must equal the plan's <code>paddle_price_id</code> in our API.</div>
+
+  <label>User id (UUID from GET /users/me/ or the admin users list)</label>
+  <input id="userid" placeholder="a8fbaaa8-efe3-42ac-9688-90416393bb0a" />
+  <div class="hint">REQUIRED — the webhook maps the payment to this tenant.</div>
+
+  <label>Customer email</label>
+  <input id="email" placeholder="customer@example.com" />
+
+  <button onclick="pay()">Open Checkout</button>
+  <div id="status">Fill the fields, then click Open Checkout.
+Sandbox test card: 4242 4242 4242 4242 — any future expiry, any CVC, any name.</div>
+
+  <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+  <script>
+    let initialized = false;
+    function pay() {
+      const env = document.getElementById("env").value;
+      const token = document.getElementById("token").value.trim();
+      const price = document.getElementById("price").value.trim();
+      const userId = document.getElementById("userid").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const status = document.getElementById("status");
+      if (!token || !price || !userId) {
+        status.textContent = "token, price id and user id are all required.";
+        return;
+      }
+      if (location.protocol === "file:") {
+        status.textContent =
+          "WARNING: you opened this page as file:// — Paddle checkout usually refuses that.\n" +
+          "Serve it over localhost instead:\n" +
+          "  cd <project folder>\n  python -m http.server 8080\n" +
+          "then open http://localhost:8080/paddle-checkout-test.html";
+      }
+      if (!initialized) {
+        if (env === "sandbox") Paddle.Environment.set("sandbox");
+        Paddle.Initialize({
+          token: token,
+          eventCallback: function (ev) {
+            status.textContent = "Paddle event: " + (ev && ev.name) + "\n" +
+              ((ev && ev.name) === "checkout.completed"
+                ? "Payment done. Paddle will now call our webhook — check the destination logs, then GET /my-subscription/ for the new credits."
+                : JSON.stringify(ev, null, 2).slice(0, 1500));
+          },
+        });
+        initialized = true;
+      }
+      Paddle.Checkout.open({
+        items: [{ priceId: price, quantity: 1 }],
+        customer: email ? { email: email } : undefined,
+        customData: { user_id: userId },  // REQUIRED for webhook fulfillment
+      });
+    }
+  </script>
+</body>
+</html>

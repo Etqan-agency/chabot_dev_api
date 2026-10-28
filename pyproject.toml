@@ -1,0 +1,19 @@
+[tool.ruff]
+line-length = 119
+target-version = "py313"
+extend-exclude = [
+    "*/migrations/*.py",
+    "staticfiles/*",
+    "_backup_auth_refactor/*",
+    ".venv/*",
+]
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "UP", "DJ", "B", "C4"]
+# DJ001 (null=True on CharField/TextField) is a real finding on 5 fields, but
+# every fix needs a schema migration and a data audit of existing NULLs. That
+# is sub-project 2 work, not a prerequisite for deploying. Tracked there.
+ignore = ["DJ001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["Authentication", "Conf", "knowledge", "subscriptions", "WhatsApp"]

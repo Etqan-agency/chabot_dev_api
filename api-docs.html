@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ChatBot API — Reference</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #161b22;
+    --panel-2: #1c232c;
+    --border: #2a323d;
+    --text: #d7dde6;
+    --muted: #8a96a4;
+    --accent: #6cb6ff;
+    --accent-2: #8ddb8c;
+    --warn: #f0a868;
+    --danger: #ff7878;
+    --get: #6cb6ff;
+    --post: #8ddb8c;
+    --put: #f0a868;
+    --patch: #d2a8ff;
+    --delete: #ff7878;
+    --code-bg: #0b0f14;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #fafbfc;
+      --panel: #ffffff;
+      --panel-2: #f3f5f8;
+      --border: #d8dee4;
+      --text: #1f2329;
+      --muted: #6a737d;
+      --accent: #0969da;
+      --accent-2: #1a7f37;
+      --warn: #9a6700;
+      --danger: #cf222e;
+      --get: #0969da;
+      --post: #1a7f37;
+      --put: #9a6700;
+      --patch: #8250df;
+      --delete: #cf222e;
+      --code-bg: #f3f5f8;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre, .mono {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 13.5px;
+  }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+  aside {
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    padding: 24px 18px;
+    position: sticky; top: 0; max-height: 100vh; overflow-y: auto;
+  }
+  main { padding: 32px 48px 80px; max-width: 1100px; }
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 24px 20px 60px; }
+  }
+
+  /* Sidebar */
+  .brand { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+  .brand small { font-weight: 400; color: var(--muted); display: block; font-size: 12px; }
+  nav h4 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--muted); margin: 22px 0 6px;
+  }
+  nav a { display: block; padding: 4px 8px; border-radius: 4px; color: var(--text); font-size: 13.5px; }
+  nav a:hover { background: var(--panel-2); text-decoration: none; }
+  nav a.sub { padding-left: 18px; color: var(--muted); }
+
+  /* Headings */
+  h1 { font-size: 28px; margin: 8px 0 6px; }
+  h2 {
+    font-size: 22px; margin: 48px 0 8px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 17px; margin: 28px 0 4px; }
+  h4 { font-size: 14px; margin: 18px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  p { margin: 6px 0 12px; }
+
+  /* Endpoint card */
+  .ep {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+  }
+  .ep-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .method {
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .m-get    { background: var(--get); }
+  .m-post   { background: var(--post); }
+  .m-put    { background: var(--put); }
+  .m-patch  { background: var(--patch); }
+  .m-delete { background: var(--delete); }
+  .m-any    { background: var(--muted); }
+  .path { font-family: ui-monospace, monospace; font-size: 14px; word-break: break-all; }
+  .badge {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: var(--panel-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .badge.public { color: var(--accent-2); border-color: var(--accent-2); }
+  .badge.auth   { color: var(--accent); border-color: var(--accent); }
+  .badge.staff  { color: var(--warn);   border-color: var(--warn); }
+  .ep-body { margin-top: 10px; }
+  .ep-body p:first-child { margin-top: 0; }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    margin: 8px 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  pre code { background: transparent; padding: 0; }
+
+  /* Tables */
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td code { font-size: 12.5px; }
+
+  /* Misc */
+  .lead { color: var(--muted); margin-bottom: 18px; }
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .callout.warn { border-color: var(--warn); }
+  .callout.danger { border-color: var(--danger); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  ul, ol { margin: 6px 0 12px; padding-left: 22px; }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside>
+  <div class="brand">ChatBot API <small>v3.1 — multi-tenant RAG reference</small></div>
+  <nav>
+    <h4>Getting started</h4>
+    <a href="#overview">Overview</a>
+    <a href="#conventions">Conventions</a>
+    <a href="#tenancy">Multi-tenancy</a>
+    <a href="#errors">Errors</a>
+
+    <h4>Authentication</h4>
+    <a href="#auth-login">Login (JWT)</a>
+    <a href="#auth-refresh">Refresh token</a>
+    <a href="#auth-verify">Verify token</a>
+    <a href="#user-me">Current user</a>
+    <a href="#user-change-password">Change password</a>
+    <a href="#my-api-key">My API key</a>
+
+    <h4>Knowledge</h4>
+    <a href="#documents">Documents</a>
+    <a href="#upload-word">Upload Word file</a>
+    <a href="#sync-api">API content sync</a>
+    <a href="#chatbot-config">Chatbot config</a>
+
+    <h4>Chat</h4>
+    <a href="#chat">Chat (RAG)</a>
+    <a href="#chat-feedback">Feedback</a>
+
+    <h4>Analytics &amp; Quotas</h4>
+    <a href="#analytics-usage">Usage &amp; quota</a>
+
+    <h4>Subscriptions</h4>
+    <a href="#my-subscription">My subscription</a>
+    <a href="#plans">Browse plans</a>
+
+    <h4>WhatsApp</h4>
+    <a href="#wa-webhook">Webhook</a>
+    <a href="#wa-accounts">Accounts (multi-tenant)</a>
+    <a href="#wa-send">Send message</a>
+    <a href="#wa-data">Read-only data</a>
+
+    <h4>Admin controls</h4>
+    <a href="#admin">Overview</a>
+    <a href="#user-admin">Users</a>
+    <a href="#user-register">Create / register user</a>
+    <a href="#user-set-password">Set user password</a>
+    <a href="#api-keys-admin">API keys control</a>
+    <a href="#plans-admin">Plans (manage)</a>
+    <a href="#subscriptions-admin">Assign subscriptions</a>
+    <a href="#admin-analytics">All-tenant analytics</a>
+
+    <h4>Reference</h4>
+    <a href="#config">Configuration (env)</a>
+    <a href="#health">Top-level &amp; tools</a>
+  </nav>
+</aside>
+
+<main>
+
+<h1 id="overview">ChatBot API</h1>
+<p class="lead">Django REST Framework API powering a multilingual, multi-tenant RAG chatbot. Each tenant (user / API key) has its own knowledge base and its own bot identity; the assistant answers strictly from that tenant's own data. Authentication lives in the dedicated <code>Authentication</code> app; knowledge, chat and config live in <code>knowledge</code>.</p>
+
+<h3>Quick links</h3>
+<ul>
+  <li><strong>Interactive tester</strong>: <code>/api-tester/</code> — try every endpoint from the browser (served same-origin, no CORS).</li>
+  <li><strong>OpenAPI schema</strong>: <code>GET /api/schema/</code> &nbsp;·&nbsp; <strong>Swagger UI</strong>: <code>/api/docs/</code> &nbsp;·&nbsp; <strong>ReDoc</strong>: <code>/api/redoc/</code></li>
+  <li><strong>Scaling guide</strong>: <code>SCALING.md</code> (incremental sync, retrieval tuning, background ingestion, pgvector).</li>
+</ul>
+
+<h2 id="conventions">Conventions</h2>
+<ul>
+  <li><strong>Base URL</strong>: <code>http://localhost:8000</code> in dev. All API routes below are relative to <code>/api/v1/</code> (except <code>/health/</code>, <code>/admin/</code>, <code>/api-tester/</code>).</li>
+  <li><strong>Content type</strong>: send <code>Content-Type: application/json</code> for JSON bodies. File uploads use <code>multipart/form-data</code>. A request with <code>text/plain</code> (e.g. <code>fetch</code> with a raw string and no header) is rejected with <code>415</code>.</li>
+  <li><strong>Auth</strong>: two schemes — <code>Authorization: Bearer &lt;jwt&gt;</code> (humans) or <code>Authorization: ApiKey &lt;key&gt;</code> (machines / per-tenant). Either works on protected endpoints.</li>
+  <li><strong>Pagination</strong>: list endpoints accept <code>?page=&lt;n&gt;</code>; default page size is 20.</li>
+  <li><strong>Filtering / search / ordering</strong>: list endpoints accept <code>?search=&lt;q&gt;</code> and <code>?ordering=&lt;field&gt;</code> (prefix <code>-</code> for descending).</li>
+  <li><strong>IDs</strong>: all primary keys are UUIDs.</li>
+</ul>
+
+<h4>Auth headers</h4>
+<pre><code>Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5…    # JWT
+Authorization: ApiKey 9f2c1a4e…                     # per-user API key</code></pre>
+
+<h4>Paginated response shape</h4>
+<pre><code>{ "count": 123, "next": "http://…?page=2", "previous": null, "results": [ … ] }</code></pre>
+
+<h2 id="tenancy">Multi-tenancy</h2>
+<p>Every document, API-sync record and chat answer is scoped to the authenticated user. Uploads are stamped with <code>uploaded_by</code>; retrieval filters chunks to <code>document.uploaded_by == request.user</code>. So a request authenticated with tenant A's API key only ever sees tenant A's data.</p>
+<p>Each user also has a <a href="#chatbot-config">ChatbotConfig</a> (identity + behaviour). The system assembles the prompt from those fields and enforces <strong>strict grounding</strong>: the bot answers only from the retrieved context and never invents facts or uses outside knowledge.</p>
+
+<h2 id="errors">Errors</h2>
+<table>
+  <tr><th>Status</th><th>When</th></tr>
+  <tr><td><code>400</code></td><td>Validation failure. Body is a per-field map or <code>{"detail": "…"}</code>.</td></tr>
+  <tr><td><code>401</code></td><td>Missing or invalid credentials (token/API key).</td></tr>
+  <tr><td><code>402</code></td><td>Subscription expired — renew to continue (chat).</td></tr>
+  <tr><td><code>403</code></td><td>Authenticated but not allowed (e.g. non-admin hitting an admin endpoint), or a suspended tenant.</td></tr>
+  <tr><td><code>404</code></td><td>Resource not found.</td></tr>
+  <tr><td><code>405</code></td><td>Method not allowed (e.g. POST to a detail-only route).</td></tr>
+  <tr><td><code>413</code></td><td>Document / storage quota exceeded (uploads).</td></tr>
+  <tr><td><code>415</code></td><td>Unsupported media type — you didn't send <code>Content-Type: application/json</code>.</td></tr>
+  <tr><td><code>429</code></td><td>Rate limit, monthly question quota, or token budget exceeded (also login throttle).</td></tr>
+  <tr><td><code>500</code></td><td>Unhandled server error.</td></tr>
+  <tr><td><code>502</code></td><td>Upstream provider failed (e.g. Meta API rejected an outgoing message).</td></tr>
+  <tr><td><code>503</code></td><td>Chat pipeline cannot run (missing <code>OPENAI_API_KEY</code>, embedding/LLM provider unreachable).</td></tr>
+</table>
+
+<!-- =============================================== AUTH =============================================== -->
+
+<h2 id="authentication">Authentication</h2>
+<p>JWT via <code>djangorestframework-simplejwt</code>. Access tokens live for <strong>3 days</strong>, refresh tokens for <strong>30 days</strong>; refresh rotation + blacklist are enabled. The user object uses a UUID <code>id</code> and a derived <code>role</code> (<code>admin</code> when <code>is_staff</code>, else <code>user</code>).</p>
+
+<div class="ep" id="auth-login">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/auth/login/</span><span class="badge public">public</span></div>
+  <div class="ep-body">
+    <p>Exchange username and password for a token pair.</p>
+    <h4>Request</h4>
+<pre><code>{"username": "alice", "password": "secret"}</code></pre>
+    <h4>Response — 200</h4>
+<pre><code>{
+  "access":  "eyJhbGciOi…",
+  "refresh": "eyJhbGciOi…",
+  "user": {
+    "id": "3f9c…",            // UUID
+    "username": "alice",
+    "email": "alice@example.com",
+    "first_name": "Alice",
+    "last_name": "Smith",
+    "role": "user",           // "admin" | "user"
+    "is_active": true,
+    "date_joined": "2026-04-25T18:00:00Z"
+  }
+}</code></pre>
+  </div>
+</div>
+
+<div class="ep" id="auth-refresh">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/auth/refresh/</span><span class="badge public">public</span></div>
+  <div class="ep-body">
+    <p>Trade a refresh token for a fresh access token (and a rotated refresh).</p>
+<pre><code>// request
+{"refresh": "eyJhbGciOi…"}
+
+// response 200
+{"access": "eyJhbGciOi…", "refresh": "eyJhbGciOi…"}</code></pre>
+  </div>
+</div>
+
+<div class="ep" id="auth-verify">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/auth/verify/</span><span class="badge public">public</span></div>
+  <div class="ep-body">
+    <p>Lightweight check that an access token is still valid. Empty <code>200</code> body when valid; <code>401</code> otherwise.</p>
+<pre><code>{"token": "eyJhbGciOi…"}</code></pre>
+  </div>
+</div>
+
+<div class="ep" id="user-me">
+  <div class="ep-head"><span class="method m-get">GET</span><span class="path">/api/v1/users/me/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>The current user (same shape as the <code>user</code> object in the login response).</p>
+  </div>
+</div>
+
+<div class="ep" id="user-change-password">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/users/change-password/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>Change your own password. Verifies the current password first.</p>
+<pre><code>// request
+{"old_password": "secret", "new_password": "N3wStr0ng!", "new_password_confirm": "N3wStr0ng!"}
+
+// response 200
+{"detail": "Password updated successfully."}</code></pre>
+    <p><code>400</code> if the old password is wrong or the new ones don't match / fail validation.</p>
+  </div>
+</div>
+
+<div class="ep" id="my-api-key">
+  <div class="ep-head"><span class="method m-get">GET</span><span class="path">/api/v1/users/api-key/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>Get (or lazily create) your own API key. <code>POST /api/v1/users/regenerate-api-key/</code> rotates it.</p>
+<pre><code>{"id": "…", "key": "9f2c1a4e…", "is_active": true, "last_used_at": null, "created_at": "…"}</code></pre>
+    <p>Use the key as <code>Authorization: ApiKey &lt;key&gt;</code> — this is how a tenant's chatbot authenticates and gets scoped to its own data.</p>
+  </div>
+</div>
+
+<!-- =============================================== ADMIN: USERS & KEYS =============================================== -->
+
+<h2 id="admin">Admin controls</h2>
+<p>Everything in this section is <strong>admin-only</strong> (<code>is_staff</code>): user management, the API-key control plane, plan &amp; subscription management, and all-tenant analytics. There is no public self-registration — admins create accounts. Send an admin JWT (or an admin's API key).</p>
+<p><strong>In this section:</strong> <a href="#user-admin">Users</a> · <a href="#user-register">Create user</a> · <a href="#user-set-password">Set password</a> · <a href="#api-keys-admin">API keys</a> · <a href="#plans-admin">Plans</a> · <a href="#subscriptions-admin">Subscriptions</a> · <a href="#admin-analytics">All-tenant analytics</a>.</p>
+
+<div class="ep" id="user-admin">
+  <div class="ep-head"><span class="method m-any">CRUD</span><span class="path">/api/v1/users/</span><span class="badge staff">admin</span></div>
+  <div class="ep-body">
+    <p>List / retrieve / update / delete users on <code>/users/</code> and <code>/users/&lt;id&gt;/</code>.</p>
+    <p><strong>Search</strong> on <code>username</code>, <code>email</code>, <code>first_name</code>, <code>last_name</code>. <strong>Ordering</strong>: <code>username | email | date_joined</code>.</p>
+  </div>
+</div>
+
+<div class="ep" id="user-register">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/users/</span> <span class="path">· /users/create/ · /users/register/</span><span class="badge staff">admin</span></div>
+  <div class="ep-body">
+    <p>Create a user and automatically issue an API key. All three paths are equivalent aliases. Optionally assign a <strong>subscription plan</strong> at the same time via <code>plan</code> + <code>plan_duration_days</code>.</p>
+    <h4>Request</h4>
+<pre><code>{
+  "username": "original_software",
+  "email": "originalsoftware@mail.com",
+  "first_name": "maher",
+  "last_name": "maher",
+  "password": "S0meStr0ngPass!",
+  "password_confirm": "S0meStr0ngPass!",
+  "plan": "starter",            // optional — plan slug or id (see /plans/)
+  "plan_duration_days": 30      // optional — default 30
+}</code></pre>
+    <p><code>plan</code> is optional: omit it and the user starts on the default free tier; pass an unknown plan and you get <code>400</code>.</p>
+    <h4>Response — 201</h4>
+<pre><code>{ …user fields…, "role": "user", "api_key": "9f2c1a4e…",
+  "subscription": {             // only present when a plan was assigned
+    "plan": "Starter", "status": "active", "current_period_end": "2026-07-17T…Z"
+  }
+}</code></pre>
+    <div class="callout warn">Admin-only: call it with an admin's <code>Bearer</code> token or <code>ApiKey</code>. Without auth you get <code>401</code>. Passwords are validated (length, common-password, similarity to username); weak ones return <code>400</code>.</div>
+  </div>
+</div>
+
+<div class="ep" id="user-set-password">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/users/&lt;id&gt;/set-password/</span><span class="badge staff">admin</span></div>
+  <div class="ep-body">
+    <p>Admin reset of another user's password — no old password required.</p>
+<pre><code>// request
+{"new_password": "N3wStr0ng!"}
+
+// response 200
+{"detail": "Password updated for original_software."}</code></pre>
+    <p>Also: <code>GET /users/&lt;id&gt;/api-key/</code> and <code>POST /users/&lt;id&gt;/regenerate-api-key/</code> (admin) to read / rotate a user's key.</p>
+  </div>
+</div>
+
+<h3 id="api-keys-admin">API keys control plane — <code>/api/v1/api-keys/</code> <span class="badge staff" style="margin-left:6px">admin</span></h3>
+<p>Full admin control over every user's API key.</p>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Notes</th></tr>
+  <tr><td><code>GET</code></td><td><code>/api-keys/</code></td><td>List / search (<code>?search=&lt;username|email&gt;</code>)</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api-keys/</code></td><td>Issue a key for a user — body <code>{"user": "&lt;user_id&gt;"}</code></td></tr>
+  <tr><td><code>GET / DELETE</code></td><td><code>/api-keys/&lt;id&gt;/</code></td><td>Retrieve / delete</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api-keys/&lt;id&gt;/revoke/</code></td><td>Disable without deleting</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api-keys/&lt;id&gt;/activate/</code></td><td>Re-enable</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api-keys/&lt;id&gt;/regenerate/</code></td><td>Rotate (old key dies immediately)</td></tr>
+</table>
+<h4>Object shape</h4>
+<pre><code>{ "id": "…", "user": "&lt;user_id&gt;", "username": "alice", "key": "9f2c1a4e…",
+  "is_active": true, "last_used_at": "…", "created_at": "…" }</code></pre>
+
+<h3 id="plans-admin">Plans — manage <code>/api/v1/plans/</code> <span class="badge staff" style="margin-left:6px">admin</span></h3>
+<p>Anyone authenticated can <strong>read</strong> active plans (catalog — see <a href="#plans">Browse plans</a>); only admins can create/edit/delete them.</p>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Notes</th></tr>
+  <tr><td><code>POST</code></td><td><code>/plans/</code></td><td>Create a plan</td></tr>
+  <tr><td><code>PATCH</code></td><td><code>/plans/&lt;id&gt;/</code></td><td>Edit limits / price / model</td></tr>
+  <tr><td><code>DELETE</code></td><td><code>/plans/&lt;id&gt;/</code></td><td>Remove a plan</td></tr>
+</table>
+<h4>Plan object</h4>
+<pre><code>{
+  "id": "…", "name": "Starter", "slug": "starter", "description": "...",
+  "price_usd": "39.00",
+  "monthly_questions": 1000,        // 0 = unlimited (the sellable metric)
+  "monthly_token_cap": 5000000,     // 0 = unlimited (fair-use safety net)
+  "max_documents": 25, "max_total_mb": 50, "max_requests_per_min": 60,
+  "llm_model": "gpt-4o",            // which model answers for this plan
+  "is_active": true, "sort_order": 1
+}</code></pre>
+<p>Seed the recommended plans (Trial / Starter / Growth / Business) on the server with:
+<code>python manage.py seed_plans</code>.</p>
+
+<h3 id="subscriptions-admin">Subscriptions — assign <code>/api/v1/subscriptions/</code> <span class="badge staff" style="margin-left:6px">admin</span></h3>
+<p>Put a user on a plan for a billing period. Admin only — a tenant can never change their own plan.</p>
+<pre><code>// POST /api/v1/subscriptions/   (assign or move a user to a plan)
+{ "user": "&lt;user_id&gt;", "plan": "&lt;plan_id&gt;", "duration_days": 30, "auto_renew": true }
+
+// GET /api/v1/subscriptions/    list all subscriptions
+// GET /api/v1/subscriptions/&lt;id&gt;/   one subscription</code></pre>
+<p>Enforcement is automatic on every <a href="#chat">chat</a> call: when a tenant exhausts
+<code>monthly_questions</code> → <code>429</code>; when the token cap is hit → <code>429</code>;
+when the subscription has expired → <code>402</code>. Users with <strong>no</strong> subscription
+fall back to the default free-tier limits.</p>
+
+<h3 id="admin-analytics">All-tenant analytics <span class="badge staff" style="margin-left:6px">admin</span></h3>
+<p>The usage endpoint accepts <code>?scope=all</code> for admins to get a per-tenant breakdown:</p>
+<pre><code>GET /api/v1/analytics/usage/?scope=all
+// → { "tenants": [ { "tenant": {...}, "totals": {...}, "quota": {...} }, ... ] }</code></pre>
+<p>Non-admins requesting <code>scope=all</code> get <code>403</code>. See <a href="#analytics-usage">Usage &amp; quota</a> for the per-tenant payload shape.</p>
+
+<!-- =============================================== KNOWLEDGE =============================================== -->
+
+<h2 id="knowledge">Knowledge</h2>
+<p>A tenant's knowledge comes from uploaded documents and synced external APIs. Everything is processed uniformly: parsed → split into overlapping chunks → embedded → stored as <code>DocumentChunk</code> rows that the chat pipeline retrieves.</p>
+
+<h3 id="documents">Documents — <code>/api/v1/documents/</code> <span class="badge auth" style="margin-left:6px">auth</span></h3>
+<p>Supported formats: <code>.docx</code>, <code>.txt</code>, <code>.md</code>. Max upload size is <code>MAX_UPLOAD_SIZE_MB</code> (default <strong>20&nbsp;MB</strong>); larger files return <code>400</code>. Listing is scoped to your own documents.</p>
+
+<table>
+  <tr><th>Method</th><th>Path</th><th>Notes</th></tr>
+  <tr><td><code>GET</code></td><td><code>/documents/</code></td><td>List your documents</td></tr>
+  <tr><td><code>POST</code></td><td><code>/documents/</code></td><td>Upload any supported file (multipart)</td></tr>
+  <tr><td><code>POST</code></td><td><code>/documents/upload-word/</code></td><td>Word-only upload, returns <code>chunks_created</code> (see below)</td></tr>
+  <tr><td><code>GET / PATCH / DELETE</code></td><td><code>/documents/&lt;id&gt;/</code></td><td>Retrieve / toggle <code>is_active</code> / delete</td></tr>
+  <tr><td><code>POST</code></td><td><code>/documents/&lt;id&gt;/reindex/</code></td><td>Re-chunk + re-embed</td></tr>
+</table>
+
+<p><strong>Filters</strong>: <code>processing_status</code>, <code>is_active</code>. <strong>Search</strong>: <code>filename</code>. <strong>Ordering</strong>: <code>created_at | updated_at | file_size</code>.</p>
+
+<h4>Object shape</h4>
+<pre><code>{
+  "id": "f0e1…",
+  "file": "/media/documents/f0e1…/handbook.docx",
+  "filename": "handbook.docx",
+  "file_size": 38212,
+  "file_size_mb": 0.04,
+  "chunk_count": 6,
+  "processing_status": "completed",   // pending | processing | completed | failed
+  "error_message": "",
+  "is_active": true,
+  "source_type": "file",              // file | api
+  "api_url": "",
+  "items_key": "",
+  "uploaded_by": "3f9c…",
+  "uploaded_by_username": "alice",
+  "created_at": "…",
+  "updated_at": "…"
+}</code></pre>
+
+<pre><code>curl -X POST http://localhost:8000/api/v1/documents/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@samples/company_handbook.docx"</code></pre>
+
+<div class="callout warn">
+  If ingestion fails (parser error, embedding API down, …) the row is preserved with
+  <code>processing_status="failed"</code> and the reason in <code>error_message</code>. Retry with
+  <code>reindex</code>. With <code>INGESTION_MODE=thread</code>, upload returns immediately as
+  <code>processing</code> — poll <code>GET /documents/&lt;id&gt;/</code> until <code>completed</code>.
+</div>
+
+<div class="ep" id="upload-word">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/documents/upload-word/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>Explicit Word (<code>.docx</code>) upload. Creates the document, ingests it, and returns the document plus the number of chunks created (synchronously, in <code>sync</code> ingestion mode).</p>
+    <h4>Request — multipart/form-data</h4>
+    <table>
+      <tr><th>Field</th><th>Required</th><th>Notes</th></tr>
+      <tr><td><code>file</code></td><td>yes</td><td>A <code>.docx</code> file (other types → <code>400</code>)</td></tr>
+    </table>
+    <h4>Response — 201</h4>
+<pre><code>{ …document fields…, "processing_status": "completed", "chunks_created": 12 }</code></pre>
+  </div>
+</div>
+
+<div class="ep" id="knowledge-content">
+  <div class="ep-head"><span class="method m-get">GET</span><span class="path">/api/v1/knowledge/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p><strong>Knowledge content — review and fix exactly what the bot learned.</strong> Documents are what you uploaded; these are the pieces the bot actually answers from, across every source (file upload, API sync, website crawl). Full CRUD, so a wrong or stale answer is corrected in place instead of re-uploading the source.</p>
+    <h4>Endpoints</h4>
+<pre><code>GET    /api/v1/knowledge/              list &amp; search everything the bot knows
+POST   /api/v1/knowledge/              teach it one new piece  {document, content}
+GET    /api/v1/knowledge/{id}/         read one piece
+PATCH  /api/v1/knowledge/{id}/         fix the wording  {content}
+DELETE /api/v1/knowledge/{id}/         make it forget one piece
+POST   /api/v1/knowledge/bulk-delete/  forget many at once  {ids: [...]}
+GET    /api/v1/knowledge/stats/        totals per source + how much was corrected</code></pre>
+    <h4>List filters</h4>
+<pre><code>?document=&lt;uuid&gt;        only this document's knowledge
+?source_type=file|api|website
+?document_name=handbook  substring of the document name
+?source_id=42            the source record a chunk came from (API sync)
+?edited=true             only the pieces a human corrected
+?search=refund           substring of the content
+?ordering=-updated_at&amp;page=2</code></pre>
+    <h4>Response row</h4>
+<pre><code>{
+  "id": "…", "document": "…", "document_name": "handbook.txt",
+  "source_type": "file", "api_url": "", "position": 3,
+  "content": "Refunds are processed within 14 days.",
+  "char_count": 37, "source_id": "", "metadata": {"manually_edited": true},
+  "embedding_model": "text-embedding-3-large",
+  "is_embedded": true, "was_edited": true, "edited_at": "2026-09-14T…",
+  "created_at": "…", "updated_at": "…"
+}</code></pre>
+    <p><strong>Every write re-embeds.</strong> Retrieval matches on the embedding, not the text — saving new wording without re-embedding would leave the bot matching the wording you just removed. Create and edit embed synchronously and refresh the vector index. If the embedding provider is down the write is rejected with <code>400</code> and the previous text is left intact, never half-applied.</p>
+    <p><strong>Edits vs. re-syncs.</strong> An API sync will not revert your correction when the source record is unchanged (it reports <code>items_protected</code>); when that record genuinely changes, the source wins again. <code>full_refresh</code>, a document re-index, and a re-crawl all rebuild from the original and replace corrections.</p>
+    <p>Scoped to the caller: you only ever see and touch knowledge belonging to your own documents.</p>
+  </div>
+</div>
+
+<div class="ep" id="sync-api">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/sync-api-content/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>Fetch JSON from an external API and ingest it into a virtual document — <strong>incrementally</strong>. Only new or changed records are re-embedded; unchanged records are skipped (no embedding cost) and records that vanished from the source are removed. Ideal for a live/updating database synced on a schedule.</p>
+    <p>The <strong>whole source</strong> is imported, not just the first page's items list. A paginated source is followed to the end (<code>next</code>, <code>links.next</code>, or a <code>Link</code> header); the reply reports <code>pages_fetched</code> and <code>truncated</code>. Each element of each page becomes one record, and that page's remaining top-level fields are stored as one extra <code>{"response_metadata": {…}}</code> record. The list is found under <code>items_key</code>, or auto-detected (the longest top-level list) when that key is absent — so <code>{"data": […]}</code>, a bare JSON array, or a single JSON object all work without configuration.</p>
+    <p><strong>Nothing is lost.</strong> Every record is archived verbatim before it is chunked or embedded, so a failure in the embedding provider costs searchability, never content — <code>manage.py rebuild_api_chunks &lt;doc&gt;</code> re-indexes from that archive without calling the source again.</p>
+    <p><strong>AI analysis</strong> (<code>ai_analysis</code>, default <code>true</code>): each new or changed record is described in plain language by the LLM and indexed <em>alongside</em> the raw JSON — retrieval gets the prose, answers still quote the exact fields. Best-effort: an LLM outage leaves the record stored and indexed, and the description is retried next sync.</p>
+    <h4>Request</h4>
+<pre><code>{
+  "api_url": "https://example.com/api/items/",
+  "document_name": "API Content",   // virtual doc name (default)
+  "items_key": "results",           // JSON key holding the list (default; auto-detected if absent)
+  "ai_analysis": true,              // describe each record with the AI (default)
+  "max_pages": 200,                 // cap on pages followed (default from settings)
+  "full_refresh": false             // true = re-index everything (the archive is kept)
+}</code></pre>
+    <h4>Response — 200</h4>
+<pre><code>{
+  "status": "success",
+  "processed": 120,
+  "chunks_created": 8,
+  "items_new": 3,
+  "items_updated": 1,
+  "items_unchanged": 116,
+  "items_removed": 2,
+  "errors": 0
+}</code></pre>
+    <p>Records are matched by a stable <code>source_id</code> (a natural id key — <code>id</code>/<code>pk</code>/<code>uuid</code>/<code>slug</code>/<code>_id</code> — or a content hash) and a content hash. There is also a CLI: <code>python manage.py sync_api_content &lt;url&gt;</code>.</p>
+  </div>
+</div>
+
+<div class="ep" id="chatbot-config">
+  <div class="ep-head"><span class="method m-get">GET</span><span class="method m-patch">PATCH</span><span class="path">/api/v1/chatbot-config/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>Read or update your bot's identity and behaviour. The server assembles the system prompt from these fields; the strict-grounding rules themselves are enforced server-side and are not editable — a bot can never be configured to answer outside its own data.</p>
+    <h4>Object shape</h4>
+<pre><code>{
+  "assistant_name": "Support Bot",
+  "company_name": "My Company",
+  "default_language": "auto",       // "auto" | "ar" | "en" | …
+  "tone": "friendly",               // friendly | formal | concise
+  "strict_grounding": true,         // answer only from your data
+  "no_answer_message": "",          // optional static reply when nothing matches
+  "top_k": null,                    // override RAG_TOP_K (null = use default)
+  "similarity_threshold": null,     // override RAG_SIMILARITY_THRESHOLD
+  "created_at": "…",
+  "updated_at": "…"
+}</code></pre>
+    <p>A config row is created on first access. Send a partial body to <code>PATCH</code> only the fields you want to change.</p>
+  </div>
+</div>
+
+<!-- =============================================== CHAT =============================================== -->
+
+<h2 id="chat-section">Chat</h2>
+
+<h3 id="chat">Chat — <code>POST /api/v1/chat/</code> <span class="badge auth" style="margin-left:6px">auth</span></h3>
+<p>Answer a question using RAG. <strong>Authentication is required</strong> and answers are <strong>scoped to the authenticated tenant</strong>: send <code>x-api-key: &lt;key&gt;</code> (or <code>Authorization: ApiKey &lt;key&gt;</code> / <code>Bearer &lt;jwt&gt;</code>) so the bot retrieves only that tenant's chunks and uses that tenant's <a href="#chatbot-config">config</a>. Each call is rate-limited and metered per tenant (see <a href="#analytics-usage">Analytics &amp; quotas</a>).</p>
+
+<h4>Pipeline</h4>
+<ol>
+  <li><strong>Detect language and dialect</strong> — Arabic dialects (Iraqi, Egyptian, Saudi, Emirati, Syrian, Moroccan) and other languages.</li>
+  <li><strong>Retrieve</strong> — pulls <code>RAG_FETCH_K</code> candidate chunks above <code>threshold</code> (cosine), then re-ranks to <code>top_k</code> with MMR for relevance + diversity. Backend is numpy (default) or pgvector.</li>
+  <li><strong>Grounded generation</strong> — passes only the retrieved context + history to the LLM under a strict, per-tenant system prompt.</li>
+  <li><strong>No-match fallback</strong> — if nothing matches, returns the config's <code>no_answer_message</code> or a localized "I don't have that" handoff — never an invented answer.</li>
+</ol>
+
+<h4>Request</h4>
+<pre><code>{
+  "question": "كم سعر المنتج؟",
+  "history": [
+    {"role": "user",      "content": "السلام عليكم"},
+    {"role": "assistant", "content": "وعليكم السلام! كيف أستطيع المساعدة؟"}
+  ],
+  "language": "ar"
+}</code></pre>
+<table>
+  <tr><th>Field</th><th>Required</th><th>Default</th><th>Notes</th></tr>
+  <tr><td><code>question</code></td><td>yes</td><td>—</td><td>Any language</td></tr>
+  <tr><td><code>history</code></td><td>no</td><td><code>[]</code></td><td>Prior turns for context</td></tr>
+  <tr><td><code>language</code></td><td>no</td><td>auto-detect</td><td>Language hint; dialect detection refines it</td></tr>
+</table>
+
+<h4>Response — 200</h4>
+<pre><code>{
+  "answer": "السعر يعتمد على الموديل…",
+  "source": "rag",
+  "source_id": "",
+  "confident": true,            // false when no chunks matched
+  "response_time_ms": 1250,
+  "prompt_tokens": 2750,        // input tokens used by the LLM
+  "completion_tokens": 300,     // output tokens
+  "cost_usd": 0.009875,         // estimated cost of this call
+  "sources": [
+    {"filename": "price_list.docx", "document_id": "f0e1…", "chunk_id": "ab12…", "position": 2, "score": 0.68}
+  ]
+}</code></pre>
+<table>
+  <tr><th>Status</th><th>Meaning</th></tr>
+  <tr><td><code>401</code></td><td>Missing/invalid credentials</td></tr>
+  <tr><td><code>403</code></td><td>Tenant account suspended</td></tr>
+  <tr><td><code>429</code></td><td>Rate limit (requests/min) or monthly token budget exceeded</td></tr>
+  <tr><td><code>503</code></td><td>RAG stack can't run (missing <code>OPENAI_API_KEY</code>, provider unreachable)</td></tr>
+</table>
+
+<div class="ep" id="chat-feedback">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/chat/feedback/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>Record user feedback on a chat response for quality monitoring.</p>
+<pre><code>// request
+{"question": "…", "answer": "…", "source": "rag", "source_id": "", "rating": "up", "comment": "مفيد!"}
+// rating: up | down ; comment optional
+
+// response 201 — the persisted feedback row (id, user, created_at, …)</code></pre>
+  </div>
+</div>
+
+<!-- =============================================== ANALYTICS & QUOTAS =============================================== -->
+
+<h2 id="analytics-section">Analytics &amp; Quotas</h2>
+
+<p>Every tenant has a <strong>quota</strong> (limits) and a <strong>usage</strong> history. Limits default to the <code>TENANT_*</code> settings and can be overridden per tenant with a <code>TenantQuota</code> row (Django admin). Every chat answer is metered (tokens, estimated cost, latency, confidence).</p>
+
+<h4>Default limits</h4>
+<table>
+  <tr><th>Limit</th><th>Default</th><th>Enforced at</th><th>On breach</th></tr>
+  <tr><td>Documents per tenant</td><td>100</td><td>upload</td><td><code>413</code></td></tr>
+  <tr><td>Total storage</td><td>200 MB</td><td>upload</td><td><code>413</code></td></tr>
+  <tr><td>Chat requests / minute</td><td>60</td><td>chat</td><td><code>429</code></td></tr>
+  <tr><td>Monthly token budget</td><td>unlimited (0)</td><td>chat</td><td><code>429</code></td></tr>
+  <tr><td>Suspension</td><td>off</td><td>upload + chat</td><td><code>403</code></td></tr>
+</table>
+
+<div class="ep" id="analytics-usage">
+  <div class="ep-head"><span class="method m-get">GET</span><span class="path">/api/v1/analytics/usage/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>Returns the authenticated tenant's usage rollups (all-time, this month, today) plus live quota consumption. Admins can pass <code>?scope=all</code> for a per-tenant breakdown across the platform.</p>
+    <h4>Response — 200 (self)</h4>
+<pre><code>{
+  "tenant": {"id": "bc82…", "username": "original_software"},
+  "totals":     {"requests": 1280, "tokens_in": 3520000, "tokens_out": 384000,
+                 "total_tokens": 3904000, "cost_usd": 12.64,
+                 "avg_response_ms": 1180.4, "confident_rate": 0.86},
+  "this_month": { …same shape… },
+  "today":      { …same shape… },
+  "quota": {
+    "documents_used": 12,  "max_documents": 100,
+    "storage_mb_used": 47.3, "max_total_mb": 200,
+    "tokens_this_month": 410000, "monthly_token_cap": 0,   // 0 = unlimited
+    "max_requests_per_min": 60, "is_suspended": false
+  }
+}</code></pre>
+    <p><code>?scope=all</code> (admin only) → <code>{ "tenants": [ {…per-tenant payload…} ] }</code>. Non-admins get <code>403</code>.</p>
+  </div>
+</div>
+
+<!-- =============================================== SUBSCRIPTIONS =============================================== -->
+
+<h2 id="subscriptions-section">Subscriptions &amp; Plans</h2>
+
+<p>Each tenant can be put on a <strong>plan</strong> — a bundle of monthly questions + a fair-use token cap + document/storage limits + which LLM model answers. Plans are sold by <strong>questions/month</strong>; the token cap is a safety net against abuse. A tenant with <strong>no</strong> subscription runs on the default free-tier limits. Assigning plans is <a href="#subscriptions-admin">admin-only</a>.</p>
+
+<div class="ep" id="my-subscription">
+  <div class="ep-head"><span class="method m-get">GET</span><span class="path">/api/v1/my-subscription/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>The caller's own plan + live usage for the current period. Use it to render a "usage" widget.</p>
+    <h4>Response — 200</h4>
+<pre><code>{
+  "subscription": {            // null when on the free tier
+    "plan": { "name": "Starter", "monthly_questions": 1000, "llm_model": "gpt-4o", ... },
+    "status": "active",
+    "current_period_start": "2026-06-01T00:00:00Z",
+    "current_period_end":   "2026-07-01T00:00:00Z",
+    "is_current": true
+  },
+  "on_free_tier": false,
+  "usage": {
+    "questions_used": 134, "questions_limit": 1000, "questions_remaining": 866,   // *_limit 0 = unlimited, *_remaining null = unlimited
+    "tokens_used": 410000, "tokens_limit": 5000000, "tokens_remaining": 4590000,
+    "documents_used": 12, "documents_limit": 25, "documents_remaining": 13,
+    "storage_mb_used": 31.4, "storage_mb_limit": 50, "storage_mb_remaining": 18.6,
+    "requests_per_min": 60
+  }
+}</code></pre>
+    <p>Use <code>documents_remaining</code> / <code>storage_mb_remaining</code> to show "how much more you can upload", and <code>questions_remaining</code> for "questions left this period".</p>
+  </div>
+</div>
+
+<div class="ep" id="plans">
+  <div class="ep-head"><span class="method m-get">GET</span><span class="path">/api/v1/plans/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>Browse the available plans (catalog). Returns only <strong>active</strong> plans for non-admins. Managing plans is <a href="#plans-admin">admin-only</a>.</p>
+<pre><code>// GET /api/v1/plans/  → paginated list of plan objects
+{ "id": "…", "name": "Growth", "price_usd": "149.00",
+  "monthly_questions": 5000, "max_documents": 100, "llm_model": "gpt-4o", ... }</code></pre>
+  </div>
+</div>
+
+<!-- =============================================== WHATSAPP =============================================== -->
+
+<h2 id="whatsapp">WhatsApp Integration</h2>
+<p>Wraps the Meta WhatsApp Cloud API. Incoming messages are routed through the RAG chat pipeline.</p>
+
+<p><strong>Multi-tenant:</strong> each business number is linked to a tenant via a <a href="#wa-accounts">WhatsApp account</a>. When a message arrives, the webhook resolves the tenant from the receiving number's <code>phone_number_id</code> and answers from <strong>that tenant's</strong> knowledge (and replies from that number). An unlinked number gets a friendly "not connected" message — never another tenant's data. The <code>WHATSAPP_TENANT</code> env var sets a single default tenant if you don't use accounts.</p>
+
+<h4>Configuration (<code>.env</code>)</h4>
+<table>
+  <tr><th>Variable</th><th>Notes</th></tr>
+  <tr><td><code>WHATSAPP_ACCESS_TOKEN</code></td><td>Default Meta access token (used when an account has no per-number token)</td></tr>
+  <tr><td><code>WHATSAPP_PHONE_NUMBER_ID</code></td><td>Default phone-number id to send from</td></tr>
+  <tr><td><code>WHATSAPP_VERIFY_TOKEN</code></td><td>Shared secret you also enter in the Meta console</td></tr>
+  <tr><td><code>WHATSAPP_TENANT</code></td><td>Optional: username of a single default tenant (when not using per-number accounts)</td></tr>
+</table>
+
+<p>Webhook callback URL to register with Meta:</p>
+<pre><code>https://&lt;your-domain&gt;/api/v1/whatsapp/webhook/</code></pre>
+
+<div class="ep" id="wa-webhook">
+  <div class="ep-head"><span class="method m-get">GET</span><span class="path">/api/v1/whatsapp/webhook/</span><span class="badge public">public</span></div>
+  <div class="ep-body">
+    <p>Meta verification handshake. Echoes <code>hub.challenge</code> when <code>hub.mode=subscribe</code> and <code>hub.verify_token</code> matches. Returns <code>403</code> on mismatch.</p>
+  </div>
+</div>
+
+<div class="ep">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/whatsapp/webhook/</span><span class="badge public">public</span></div>
+  <div class="ep-body">
+    <p>Receives incoming events: parses the message, <code>get_or_create</code>s the user + 24-h session, logs it, routes the text to RAG chat (with <code>/help</code> and <code>/lang &lt;code&gt;</code> slash-commands), replies via Meta, and logs the outgoing message. Always returns <code>200</code> to Meta.</p>
+  </div>
+</div>
+
+<h3 id="wa-accounts">WhatsApp accounts — link a number to a tenant <span class="badge staff" style="margin-left:6px">admin</span></h3>
+<p>Connect any user's WhatsApp Business number so their bot answers from their own knowledge. CRUD on <code>/api/v1/whatsapp/accounts/</code> (admin only).</p>
+<pre><code>// POST /api/v1/whatsapp/accounts/   — link a number to a tenant
+{
+  "tenant": "&lt;user_id&gt;",
+  "phone_number_id": "1234567890",     // from Meta (the business number)
+  "display_name": "Acme Bot",
+  "access_token": "EAAG…"              // optional per-number send token (write-only; falls back to env)
+}
+
+// GET /api/v1/whatsapp/accounts/        list / search (?search=, ?tenant=)
+// PATCH/DELETE /api/v1/whatsapp/accounts/&lt;id&gt;/   edit / unlink</code></pre>
+<p>Response never echoes <code>access_token</code>. One account per tenant. After linking, messages to that number answer from the tenant's data automatically.</p>
+
+<div class="ep" id="wa-send">
+  <div class="ep-head"><span class="method m-post">POST</span><span class="path">/api/v1/whatsapp/send/</span><span class="badge auth">auth</span></div>
+  <div class="ep-body">
+    <p>Send a free-form text message to a WhatsApp user.</p>
+<pre><code>// request
+{"to_number": "201234567890", "message": "تم تأكيد حجزك."}   // E.164, no leading +
+
+// response 200
+{"message_id": "wamid.HBgL…", "status": "sent"}</code></pre>
+    <p><code>400</code> missing fields · <code>502</code> Meta rejected (bad token, outside 24-h window).</p>
+  </div>
+</div>
+
+<h3 id="wa-data">Read-only data viewsets</h3>
+<p>Each supports <code>GET /…</code> (list) and <code>GET /…/&lt;id&gt;/</code> (detail). Auth required.</p>
+<table>
+  <tr><th>Path</th><th>Resource</th><th>Filters</th></tr>
+  <tr><td><code>/api/v1/whatsapp/users/</code></td><td>WhatsApp users</td><td><code>is_active</code>, <code>language_preference</code>; search <code>phone_number</code>, <code>profile_name</code></td></tr>
+  <tr><td><code>/api/v1/whatsapp/sessions/</code></td><td>24-h conversation contexts</td><td><code>session_type</code>, <code>is_active</code>, <code>user</code></td></tr>
+  <tr><td><code>/api/v1/whatsapp/messages/</code></td><td>Incoming + outgoing log</td><td><code>message_type</code>, <code>status</code>, <code>user</code>, <code>session</code>; search <code>message_text</code></td></tr>
+  <tr><td><code>/api/v1/whatsapp/analytics/</code></td><td>Daily aggregates</td><td><code>date</code></td></tr>
+</table>
+
+<!-- =============================================== CONFIG =============================================== -->
+
+<h2 id="config">Configuration (env)</h2>
+<table>
+  <tr><th>Variable</th><th>Default</th><th>Effect</th></tr>
+  <tr><td><code>MAX_UPLOAD_SIZE_MB</code></td><td><code>20</code></td><td>Max single upload size (<code>0</code> disables the limit)</td></tr>
+  <tr><td><code>INGESTION_MODE</code></td><td><code>sync</code></td><td><code>sync</code> (in-request) or <code>thread</code> (background, returns immediately)</td></tr>
+  <tr><td><code>RAG_TOP_K</code></td><td><code>6</code></td><td>Chunks passed to the LLM</td></tr>
+  <tr><td><code>RAG_FETCH_K</code></td><td><code>40</code></td><td>Candidate pool before re-ranking</td></tr>
+  <tr><td><code>RAG_USE_MMR</code> / <code>RAG_MMR_LAMBDA</code></td><td><code>true</code> / <code>0.6</code></td><td>Diversify results (avoid near-duplicate chunks)</td></tr>
+  <tr><td><code>RAG_SIMILARITY_THRESHOLD</code></td><td><code>0.5</code></td><td>Minimum cosine similarity to accept a chunk</td></tr>
+  <tr><td><code>RAG_SCAN_BATCH</code></td><td><code>2000</code></td><td>Rows scanned per batch by the numpy backend (bounds memory)</td></tr>
+  <tr><td><code>RAG_VECTOR_BACKEND</code></td><td><code>numpy</code></td><td><code>numpy</code> (any DB) or <code>pgvector</code> (Postgres + index)</td></tr>
+  <tr><td><code>EMBEDDING_MODEL</code></td><td><code>text-embedding-3-large</code></td><td>Must match embeddings in DB (1536-dim model needed for pgvector indexing)</td></tr>
+  <tr><td><code>LLM_PROVIDER</code> / <code>LLM_MODEL</code></td><td><code>openai</code> / <code>gpt-4o</code></td><td>Answer generation provider &amp; model</td></tr>
+  <tr><td><code>DATABASE_URL</code></td><td>—</td><td>Postgres DSN; falls back to SQLite when unset</td></tr>
+</table>
+<p>See <code>SCALING.md</code> for incremental sync, retrieval tuning, background ingestion and the pgvector setup command (<code>python manage.py setup_pgvector</code>).</p>
+
+<!-- =============================================== TOP-LEVEL =============================================== -->
+
+<h2 id="health">Top-level &amp; tools</h2>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Notes</th></tr>
+  <tr><td><code>GET</code></td><td><code>/health/</code></td><td>Returns <code>{"status": "ok"}</code>. No auth.</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api-tester/</code></td><td>Interactive API console (this project's tester).</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/schema/</code></td><td>OpenAPI 3 schema.</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/docs/</code></td><td>Swagger UI.</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/redoc/</code></td><td>ReDoc.</td></tr>
+  <tr><td><code>*</code></td><td><code>/admin/</code></td><td>Django admin (staff only).</td></tr>
+</table>
+
+<hr>
+<p style="color: var(--muted); font-size: 12px;">ChatBot API v3.1 — multi-tenant RAG with per-user bots and admin-managed auth. See <code>/api/schema/</code> for the canonical machine-readable spec, and <code>/api-tester/</code> to try endpoints live.</p>
+
+</main>
+</div>
+</body>
+</html>

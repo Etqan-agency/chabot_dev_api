@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual envs
+env/
+venv/
+.venv/
+
+# Secrets / local config
+.env
+.env.local
+
+# Django
+# The dev database is per-developer state, not source. Tracking it meant
+# every local run produced a 4 MB binary diff, and a pull could silently
+# replace your local data with someone else's.
+db.sqlite3
+*.sqlite3
+media/
+staticfiles/
+logs/
+
+# IDE / tooling
+.idea/
+.vscode/
+.claude/
+*.swp
+.DS_Store
+
+# Isolated worktrees for subagent-driven implementation
+.worktrees/
+
+# Database files and dumps must never be committed. A backup of the dev
+# database was tracked here once; it carried a superuser password hash and two
+# live API keys, and git history keeps them forever. Anything DB-shaped is
+# refused by name so that cannot recur.
+*.sqlite3
+*.sqlite3.bak
+*.sqlite
+*.db
+*.dump
+*.sql.gz

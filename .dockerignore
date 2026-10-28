@@ -1,0 +1,35 @@
+# Virtualenvs
+env/
+.venv/
+venv/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Local DB / media / static (rebuilt in the image / volumes)
+db.sqlite3
+media/
+staticfiles/
+
+# Secrets & local config
+.env
+.env.*
+!.env.example
+
+# Git / IDE / OS
+.git/
+.gitignore
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Docs / backups not needed in the image
+_backup_auth_refactor/
+*.md
+docs/
+.superpowers/

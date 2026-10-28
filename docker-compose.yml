@@ -1,0 +1,76 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-chatbot}
+      POSTGRES_USER: ${POSTGRES_USER:-chatbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatbot}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatbot} -d ${POSTGRES_DB:-chatbot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  web:
+    build: .
+    env_file: .env
+    environment:
+      RUN_MIGRATIONS: "1"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: ["celery", "-A", "Conf", "worker", "-l", "info", "--concurrency", "2"]
+    env_file: .env
+    volumes:
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    ports:
+      - "127.0.0.1:8017:80"
+      # - "443:443"   # enable after adding TLS certs (see DEPLOY.md)
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  static_volume:
+  media_volume:

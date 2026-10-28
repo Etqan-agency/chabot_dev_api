@@ -1,0 +1,173 @@
+name: Sync pointer to meta-repo
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-meta-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump-pointer:
+    name: Bump submodule pointer in meta-repo
+    runs-on: ubuntu-latest
+    env:
+      META_OWNER: Etqan-agency
+      META_REPO: chatbot_development
+      SUBMODULE_PATH: chabot_dev_api
+    steps:
+      - name: Checkout meta-repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.META_OWNER }}/${{ env.META_REPO }}
+          token: ${{ secrets.META_TOKEN }}
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Bump pointer on release/next and open the release PR
+        env:
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.META_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BRANCH=release/next
+
+          # Choose the base from the release PR's state, not the branch's mere
+          # existence. delete_branch_on_merge is off and squash/rebase merges
+          # are enabled, so release/next survives a merge with history
+          # disconnected from the new main -- reusing it would build the next
+          # release on a stale base.
+          PR_STATE=$(gh pr view "$BRANCH" --repo "$META_OWNER/$META_REPO" \
+            --json state --jq .state 2>/dev/null || echo "NONE")
+
+          if [ "$PR_STATE" = "OPEN" ]; then
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+            BASED_ON_MAIN=false
+          else
+            git checkout -B "$BRANCH" origin/main
+            BASED_ON_MAIN=true
+          fi
+
+          git update-index --cacheinfo 160000,"$SHA","$SUBMODULE_PATH"
+          # Discard any working-tree changes left by the checkout above; the
+          # gitlink update just made is staged in the index, not the working
+          # tree, so this cannot discard it. Failures here are expected when
+          # there is nothing to discard.
+          git checkout -- . 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "Pointer already at $SHA -- nothing to do."
+            exit 0
+          fi
+
+          git commit -m "chore: bump $SUBMODULE_PATH to ${SHA:0:7}
+
+          Pushed by @$ACTOR to $SUBMODULE_PATH main."
+
+          for attempt in 1 2 3 4 5; do
+            if [ "$attempt" -eq 1 ]; then
+              PUSH=(git push origin "$BRANCH")
+            elif [ "$BASED_ON_MAIN" = "true" ]; then
+              PUSH=(git push --force-with-lease origin "$BRANCH")
+            else
+              PUSH=(git push origin "$BRANCH")
+            fi
+
+            if "${PUSH[@]}"; then
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "push to $BRANCH failed after 5 attempts" >&2
+              exit 1
+            fi
+
+            if [ "$BASED_ON_MAIN" = "true" ]; then
+              # We based on origin/main because there was no open PR, which
+              # means this rejection is the stale, history-disconnected
+              # $BRANCH getting in the way -- not a concurrent bump.
+              # Resetting onto it here is exactly the bug this branching
+              # exists to avoid: it would land us right back on the stale
+              # base we deliberately did not build on. Refresh the
+              # remote-tracking ref so --force-with-lease has a current
+              # value to compare against, then overwrite $BRANCH -- our
+              # commit, built on origin/main, is what should win.
+              echo "push rejected (stale $BRANCH in the way); retrying with --force-with-lease $attempt/5"
+              sleep $((attempt * 3))
+              git fetch origin "$BRANCH"
+            else
+              # PR is open, so $BRANCH is the agreed-upon base and a
+              # rejection here means a genuine concurrent bump landed on it.
+              # Rebuild our bump on top of its result rather than failing: a
+              # lost push means this component's pointer silently never
+              # reaches release/next.
+              echo "push rejected (concurrent bump?); retrying $attempt/5"
+              sleep $((attempt * 3))
+              git fetch origin "$BRANCH"
+              git reset --hard "origin/$BRANCH"
+              git update-index --cacheinfo 160000,"$SHA","$SUBMODULE_PATH"
+              if git diff --cached --quiet; then
+                echo "pointer already at $SHA after refetch -- nothing to do."
+                exit 0
+              fi
+              git commit -m "chore: bump $SUBMODULE_PATH to ${SHA:0:7}
+
+          Pushed by @$ACTOR to $SUBMODULE_PATH main."
+            fi
+          done
+
+          # One PR, updated in place. Creating a second would defeat the
+          # batching this whole workflow exists for. Scoped to --json state:
+          # the human-readable view also requests a `projects` field that
+          # needs read:project, a scope META_TOKEN doesn't have, and a
+          # fine-grained PAT turns that into a hard error instead of a
+          # tolerated partial response -- which would make this guard think
+          # no PR exists when one already does.
+          #
+          # Test the STATE, not the command's exit status. `gh pr view <branch>`
+          # resolves the most recent PR for that head branch whatever its state,
+          # so once the first release PR is MERGED it keeps returning that PR
+          # and exiting 0 -- forever. The guard then skips creation on every
+          # subsequent run: pointers accumulate on release/next, the workflow
+          # reports success, and nothing ever reaches main. That is precisely
+          # what happened after the first release merged; three component
+          # merges sat undeployed with no error anywhere to show for it.
+          #
+          # Re-read rather than reusing the value captured before the push: a
+          # release PR can be merged while this job runs, and that is the one
+          # case where the earlier value would wrongly say OPEN and suppress the
+          # PR this bump needs.
+          PR_STATE=$(gh pr view "$BRANCH" --repo "$META_OWNER/$META_REPO" \
+            --json state --jq .state 2>/dev/null || echo "NONE")
+
+          if [ "$PR_STATE" != "OPEN" ]; then
+            # The two component repos have independent concurrency groups, so
+            # both can reach this point with PR_STATE=NONE and both call create.
+            # GitHub allows only one open PR per head/base pair, so the loser
+            # gets an error -- and under `set -euo pipefail` that reds the run
+            # even though its bump is already safely on $BRANCH and covered by
+            # the winner's PR. Re-read the state before deciding that is a
+            # failure: an OPEN PR is the outcome this step wanted.
+            if ! gh pr create \
+              --repo "$META_OWNER/$META_REPO" \
+              --base main --head "$BRANCH" \
+              --title "Release: submodule pointer updates" \
+              --body "Accumulated submodule pointer bumps. Merging this PR is the deploy decision -- it puts a coherent set of pointers on main, which is what CD deploys."
+            then
+              PR_STATE=$(gh pr view "$BRANCH" --repo "$META_OWNER/$META_REPO" \
+                --json state --jq .state 2>/dev/null || echo "NONE")
+              if [ "$PR_STATE" != "OPEN" ]; then
+                echo "gh pr create failed and no open release PR exists for $BRANCH" >&2
+                exit 1
+              fi
+              echo "release PR already opened concurrently -- this bump is included in it."
+            fi
+          fi
