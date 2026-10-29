@@ -56,6 +56,7 @@ urlpatterns = [
     path("api/v1/", include("knowledge.urls")),
     path("api/v1/", include("subscriptions.urls")),
     path("api/v1/whatsapp/", include("WhatsApp.urls")),
+    path("api/v1/voice/", include("voice.urls")),
 ]
 
 if settings.DEBUG:

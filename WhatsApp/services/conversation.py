@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from knowledge.services.rag import RagUnavailable, answer_question
 from knowledge.views.chat import detect_language
+from voice.services import chat_ordering
 
 from ..models import (
     WhatsAppAccount,
@@ -160,12 +161,13 @@ def _claim(*, user, session, text: str, message_id: str) -> WhatsAppMessage | No
         return None
 
 
-def conversation_history(session: WhatsAppSession, *, before) -> list[dict]:
+def conversation_history(session: WhatsAppSession, *, before, limit=None, minutes=None) -> list[dict]:
     """The recent turns of this conversation, oldest first, for the answer's
     context (so "and how much is it?" knows what "it" is). Only messages from
-    the last WHATSAPP_HISTORY_MINUTES count, up to WHATSAPP_HISTORY_MESSAGES."""
-    limit = int(getattr(settings, "WHATSAPP_HISTORY_MESSAGES", 10))
-    minutes = int(getattr(settings, "WHATSAPP_HISTORY_MINUTES", 60))
+    the last WHATSAPP_HISTORY_MINUTES count, up to WHATSAPP_HISTORY_MESSAGES,
+    unless the caller asks for a different window."""
+    limit = int(limit if limit is not None else getattr(settings, "WHATSAPP_HISTORY_MESSAGES", 10))
+    minutes = int(minutes if minutes is not None else getattr(settings, "WHATSAPP_HISTORY_MINUTES", 60))
     if limit <= 0 or session is None:
         return []
     rows = (
@@ -207,11 +209,14 @@ def handle_incoming_message(message_data: dict) -> IncomingResult | None:
         return None
     user.increment_message_count()
     session.increment_message_count()
-    history = conversation_history(session, before=incoming.created_at)
+    # A restaurant with a menu takes orders here; everyone else gets RAG answers.
+    ordering = chat_ordering.ordering_agent(tenant) if tenant is not None else None
+    window = chat_ordering.HISTORY if ordering is not None else {}
+    history = conversation_history(session, before=incoming.created_at, **window)
 
     started = time.monotonic()
     try:
-        reply = _route(text, user, tenant, history=history)
+        reply = _route(text, user, tenant, history=history, session=session, ordering=ordering)
         error_message = ""
     except Exception as exc:  # noqa: BLE001 — surfaced to operator via logs
         logger.exception("Error generating WhatsApp reply")
@@ -230,7 +235,15 @@ def handle_incoming_message(message_data: dict) -> IncomingResult | None:
     return IncomingResult(reply=reply, user=user, session=session, account=account, outgoing=outgoing)
 
 
-def _route(text: str, user: WhatsAppUser, tenant, *, history: list[dict] | None = None) -> str:
+def _route(
+    text: str,
+    user: WhatsAppUser,
+    tenant,
+    *,
+    history: list[dict] | None = None,
+    session: WhatsAppSession | None = None,
+    ordering=None,
+) -> str:
     lowered = text.lower().strip()
     if lowered in {"/start", "/help", "start", "help"}:
         return WELCOME_MESSAGE
@@ -255,6 +268,13 @@ def _route(text: str, user: WhatsAppUser, tenant, *, history: list[dict] | None 
         return UNAVAILABLE_MESSAGE
 
     started = time.monotonic()
+    if ordering is not None and session is not None:
+        with billing.charge_to(tenant, UsageKind.CHAT, reserved=reserved) as scope:
+            reply = chat_ordering.reply(
+                agent=ordering, session=session, customer_phone=user.phone_number, text=text, history=history or []
+            )
+            scope.record.update(response_time_ms=int((time.monotonic() - started) * 1000))
+        return reply
     try:
         with billing.charge_to(tenant, UsageKind.CHAT, reserved=reserved) as scope:
             result = answer_question(text, history=history or [], user=tenant, language=detect_language(text))

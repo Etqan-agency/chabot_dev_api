@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     "knowledge",
     "subscriptions",
     "WhatsApp",
+    "voice",
 ]
 
 MIDDLEWARE = [
@@ -316,6 +317,7 @@ LOGGING = {
         "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "knowledge": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "WhatsApp": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "voice": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }
 
@@ -389,6 +391,9 @@ LLM_PRICING = {
     "gpt-4.1-mini": {"input": 0.4, "output": 1.6},
     "claude-sonnet-4-6": {"input": 3.0, "output": 15.0},
     "claude-opus-4-8": {"input": 5.0, "output": 25.0},
+    "claude-opus-5-5": {"input": 4.0, "output": 20.0},
+    "claude-sonnet-5-5": {"input": 2.0, "output": 10.0},
+    "claude-haiku-5-5": {"input": 0.1, "output": 0.5},
 }
 EMBEDDING_PRICING = {
     "text-embedding-3-large": 0.13,
